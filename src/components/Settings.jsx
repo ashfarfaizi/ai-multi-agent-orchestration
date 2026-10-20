@@ -76,7 +76,7 @@ export default function Settings({ settings, providers, onSave, onClose }) {
               <div className="seg">
                 {list.map((x) => (
                   <button type="button" key={x.id} className={provider === x.id ? 'on' : ''} onClick={() => setProvider(x.id)}>
-                    {x.id === 'gemini' ? 'Gemini · free' : 'Claude'}
+                    {x.id === 'gemini' ? 'Gemini (free)' : 'Claude'}
                   </button>
                 ))}
               </div>

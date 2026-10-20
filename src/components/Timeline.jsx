@@ -29,7 +29,7 @@ export default function Timeline({ state, now }) {
         <div className="tl-label" />
         <div className="tl-track">
           {ticks.map((x) => (
-            <span key={x} className="tl-tick mono" style={{ left: `${(x / span) * 100}%` }}>
+            <span key={x} className="tl-tick" style={{ left: `${(x / span) * 100}%` }}>
               {x / 1000}s
             </span>
           ))}
@@ -38,7 +38,7 @@ export default function Timeline({ state, now }) {
       {rows.map((r) => (
         <div className="tl-row" key={r.id}>
           <div className="tl-label">
-            <span>{r.icon}</span>
+            <span className="tl-swatch" style={{ background: r.color }} />
             <span className="tl-name">{r.label}</span>
           </div>
           <div className="tl-track">
@@ -55,7 +55,7 @@ export default function Timeline({ state, now }) {
                   style={{ left: `${left}%`, width: `${width}%`, '--c': r.color }}
                   title={`${r.label}${s.attempt > 1 ? ' (revision)' : ''}: ${fmtMs((s.end ?? now) - s.start)}`}
                 >
-                  <span className="tl-bar-text mono">{s.attempt > 1 ? 'v2 · ' : ''}{fmtMs((s.end ?? now) - s.start)}</span>
+                  <span className="tl-bar-text">{s.attempt > 1 ? 'rewrite ' : ''}{fmtMs((s.end ?? now) - s.start)}</span>
                 </span>
               );
             })}

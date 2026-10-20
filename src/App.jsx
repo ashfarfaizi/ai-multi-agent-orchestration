@@ -30,26 +30,26 @@ function saveSettings(s) {
 
 const PHASES = [
   { id: 'planning', label: 'Plan' },
-  { id: 'executing', label: 'Execute in parallel' },
+  { id: 'executing', label: 'Work' },
   { id: 'reviewing', label: 'Review' },
   { id: 'revising', label: 'Revise' },
-  { id: 'synthesizing', label: 'Synthesize' },
-  { id: 'done', label: 'Deliver' },
+  { id: 'synthesizing', label: 'Write up' },
+  { id: 'done', label: 'Done' },
 ];
 
-function Stepper({ phase, status, hadRevision }) {
+function Progress({ phase, status, hadRevision }) {
   const idx = PHASES.findIndex((p) => p.id === phase);
   return (
-    <ol className="stepper">
+    <ol className="progress" aria-label="Run progress">
       {PHASES.map((p, i) => {
         let cls = 'todo';
         if (i < idx || (status === 'done' && i <= idx)) cls = 'done';
         else if (i === idx) cls = status === 'running' ? 'now' : status === 'done' ? 'done' : 'halt';
         if (p.id === 'revising' && i < idx && !hadRevision) cls = 'skip';
         return (
-          <li key={p.id} className={cls}>
-            <span className="step-dot">{cls === 'done' ? '✓' : cls === 'skip' ? '–' : i + 1}</span>
-            <span className="step-label">{p.label}</span>
+          <li key={p.id} className={cls} aria-current={cls === 'now' ? 'step' : undefined}>
+            {p.label}
+            {p.id === 'revising' && cls === 'skip' && <span className="skip-note"> (not needed)</span>}
           </li>
         );
       })}
@@ -57,32 +57,15 @@ function Stepper({ phase, status, hadRevision }) {
   );
 }
 
-function Stat({ label, value, accent }) {
-  return (
-    <div className={`stat ${accent ? 'accent' : ''}`}>
-      <div className="stat-v mono">{value}</div>
-      <div className="stat-l">{label}</div>
-    </div>
-  );
-}
-
 function Logo() {
   return (
-    <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
-      <defs>
-        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#8b5cf6" />
-          <stop offset="1" stopColor="#22d3ee" />
-        </linearGradient>
-      </defs>
-      <g stroke="url(#lg)" strokeWidth="3.5" fill="none" strokeLinecap="round">
-        <path d="M32 17 L17 40 M32 17 L47 40 M32 17 L32 40 M17 40 L32 50 M47 40 L32 50 M32 40 L32 50" />
-      </g>
-      <circle cx="32" cy="16" r="6.5" fill="url(#lg)" />
-      <circle cx="17" cy="40" r="4.5" fill="#8b5cf6" />
-      <circle cx="32" cy="40" r="4.5" fill="#3b82f6" />
-      <circle cx="47" cy="40" r="4.5" fill="#22d3ee" />
-      <circle cx="32" cy="51" r="4" fill="currentColor" />
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" className="logo">
+      <circle cx="12" cy="4.5" r="2.6" fill="currentColor" />
+      <circle cx="5" cy="13" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="13" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="19" cy="13" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="20.5" r="2" fill="currentColor" />
+      <path d="M12 7v3.8M10.4 6.4 6.3 11M13.6 6.4l4.1 4.6M5.9 15l4.7 4.2M12 15.2v3.4M18.1 15l-4.7 4.2" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
     </svg>
   );
 }
@@ -201,47 +184,38 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="bg-grid" aria-hidden="true" />
       <header className="topbar">
         <a className="brand" href="/">
           <Logo />
-          <span>
-            <span className="brand-name">Multi-Agent Orchestration</span>
-            <span className="brand-sub">plan · parallelize · review · synthesize</span>
-          </span>
+          <span className="brand-name">Multi-Agent Orchestration</span>
         </a>
-        <div className="row gap">
-          <button type="button" className={`mode-pill ${mode}`} onClick={() => setShowSettings(true)} title="Change mode & model">
-            <span className={`dot ${mode === 'live' ? 'd-done' : 'd-flagged'}`} />
-            {mode === 'live' ? `Live · ${model}` : 'Demo replay'}
+        <nav className="row gap">
+          <button type="button" className="mode" onClick={() => setShowSettings(true)} title="Change mode, provider and model">
+            <span className={`dot ${mode === 'live' ? 'd-done' : 'd-idle'}`} />
+            {mode === 'live' ? model : 'Demo mode'}
           </button>
-          <a className="icon-btn" href={REPO_URL} target="_blank" rel="noreferrer" aria-label="Source on GitHub" title="Source on GitHub">
-            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-            </svg>
+          <button type="button" className="btn ghost sm" onClick={() => setShowSettings(true)}>
+            Settings
+          </button>
+          <a className="btn ghost sm" href={REPO_URL} target="_blank" rel="noreferrer">
+            Source
           </a>
-          <button type="button" className="icon-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings">
-            ⚙
-          </button>
-        </div>
+        </nav>
       </header>
 
       <main>
-        <section className="hero">
-          <div className="eyebrow">Multi-agent AI system · live</div>
-          <h1>
-            One goal.
-            <br />
-            <span className="grad">A whole team of AI agents.</span>
-          </h1>
+        <section className="intro">
+          <h1>Give a goal to a team of AI agents</h1>
           <p className="lede">
-            An <b>Orchestrator</b> breaks your goal into a task graph and designs a specialist agent for each piece. The agents
-            work <b>in parallel</b> and pass context downstream. A <b>Reviewer</b> sends weak work back for revision, and a{' '}
-            <b>Synthesizer</b> delivers the final answer. You watch all of it stream live.
+            The orchestrator splits your goal into tasks and assigns each one to a specialist. Specialists work at the
+            same time and pass their results to whoever needs them. A reviewer sends weak work back, and a synthesizer
+            combines everything into one document.
           </p>
 
           <div className="composer">
+            <label htmlFor="goal" className="composer-label">Goal</label>
             <textarea
+              id="goal"
               value={task}
               onChange={(e) => {
                 setTask(e.target.value);
@@ -250,18 +224,18 @@ export default function App() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !running) start();
               }}
-              placeholder="Describe a goal: a plan, a design, a decision, a research question…"
+              placeholder="For example: design the backend for a food delivery app"
               rows={3}
               maxLength={4000}
-              aria-label="Goal for the agent team"
             />
             <div className="composer-row">
-              <div className="chips">
+              <div className="examples">
+                <span className="muted">Examples:</span>
                 {SCENARIOS.map((s) => (
                   <button
                     type="button"
                     key={s.id}
-                    className={`chip ${task === s.prompt ? 'on' : ''}`}
+                    className={`example ${task === s.prompt ? 'on' : ''}`}
                     onClick={() => {
                       setTask(s.prompt);
                       setNotice(null);
@@ -272,77 +246,74 @@ export default function App() {
                 ))}
               </div>
               {running ? (
-                <button type="button" className="btn danger" onClick={stop}>
-                  ■ Stop
+                <button type="button" className="btn stop" onClick={stop}>
+                  Stop
                 </button>
               ) : (
-                <button type="button" className="btn primary big" onClick={start}>
-                  Orchestrate <span className="kbd">⌘↵</span>
+                <button type="button" className="btn primary" onClick={start} title="Ctrl + Enter">
+                  Run the team
                 </button>
               )}
             </div>
             {notice === 'demo-custom' && (
               <div className="notice">
-                <b>You're in demo mode,</b> which replays three recorded runs (pick one above). To send real AI agents after{' '}
-                <i>any</i> goal, go live with a <b>free Google Gemini API key</b>.
-                <button type="button" className="btn sm primary" onClick={() => setShowSettings(true)}>
-                  Go live
+                <p>
+                  Demo mode only replays the three examples. To run your own goal, add a free Google Gemini API key in
+                  Settings.
+                </p>
+                <button type="button" className="btn primary sm" onClick={() => setShowSettings(true)}>
+                  Open settings
                 </button>
               </div>
             )}
-            {notice === 'short' && <div className="notice">Describe the goal in a bit more detail.</div>}
+            {notice === 'short' && <div className="notice"><p>Describe the goal in a bit more detail.</p></div>}
           </div>
         </section>
 
         {state.status === 'idle' && (
           <section className="how">
-            {[
-              ['🧠', 'Plan', 'The Orchestrator turns your goal into a dependency graph (DAG) and designs a specialist for each node.'],
-              ['⚡', 'Execute in parallel', 'A scheduler runs every task whose inputs are ready at the same time, passing outputs downstream as context.'],
-              ['🧐', 'Review & revise', 'A Quality Reviewer scores each deliverable and sends weak ones back with concrete feedback.'],
-              ['✨', 'Synthesize', 'A Synthesizer merges everything into one polished deliverable you can copy or download.'],
-            ].map(([icon, title, body], i) => (
-              <div className="how-card" key={title}>
-                <div className="how-n mono">0{i + 1}</div>
-                <div className="how-icon">{icon}</div>
-                <h3>{title}</h3>
-                <p>{body}</p>
-              </div>
-            ))}
+            <h2>What happens when you run it</h2>
+            <ol>
+              <li><b>Plan.</b> The orchestrator breaks the goal into 3 to 6 tasks and decides which ones depend on others.</li>
+              <li><b>Work.</b> Every task that isn't waiting on another starts at once. Finished work is handed to the tasks that need it.</li>
+              <li><b>Review.</b> A reviewer scores each result out of 10 and writes notes on anything weak.</li>
+              <li><b>Revise.</b> Weak results go back to their agent with the notes, and get rewritten.</li>
+              <li><b>Write up.</b> The synthesizer merges all results into one document you can copy or download.</li>
+            </ol>
           </section>
         )}
 
         {state.status !== 'idle' && (
           <section className="dash" ref={dashRef}>
             <div className="dash-top">
-              <Stepper phase={state.phase} status={state.status} hadRevision={revisions > 0} />
-              <div className="stats">
-                <Stat label="elapsed" value={fmtMs(elapsed)} accent={running} />
-                <Stat label="agents" value={agentCount} />
-                <Stat label="peak parallel" value={peakParallelism(state) || '—'} />
-                <Stat label="tokens" value={fmtNum(state.usage.input + state.usage.output)} />
-                <Stat label="revisions" value={state.review ? revisions : '—'} />
-                <Stat label="avg review" value={avgScore} />
-              </div>
+              <Progress phase={state.phase} status={state.status} hadRevision={revisions > 0} />
+              <dl className="summary">
+                <div><dt>Time</dt><dd>{fmtMs(elapsed)}</dd></div>
+                <div><dt>Agents</dt><dd>{agentCount}</dd></div>
+                <div><dt>Most at once</dt><dd>{peakParallelism(state) || '–'}</dd></div>
+                <div><dt>Tokens</dt><dd>{fmtNum(state.usage.input + state.usage.output)}</dd></div>
+                <div><dt>Sent back</dt><dd>{state.review ? revisions : '–'}</dd></div>
+                <div><dt>Avg score</dt><dd>{avgScore}</dd></div>
+              </dl>
             </div>
 
             {state.status === 'error' && (
               <div className="notice error">
-                <b>Run failed:</b> {state.error}
+                <p><b>The run stopped.</b> {state.error}</p>
               </div>
             )}
 
             <div className="dash-grid">
               <section className="panel graph-panel">
                 <div className="panel-head">
-                  <h2>Agent graph</h2>
-                  <span className="muted small">click any agent to inspect it</span>
+                  <h2>Team</h2>
+                  <span className="muted small">Select an agent to see its instructions and output</span>
                 </div>
                 <Graph state={state} now={now} selected={selected} onSelect={setSelected} />
                 <div className="legend small muted">
-                  <span><i className="lg flow" /> data flowing</span>
-                  <span><i className="lg done" /> delivered</span>
-                  <span><i className="lg fb" /> reviewer feedback loop</span>
+                  <span><i className="lg flow" /> passing work</span>
+                  <span><i className="lg done" /> finished</span>
+                  <span><i className="lg fb" /> sent back by reviewer</span>
                 </div>
               </section>
               <section className="panel feed-panel">
@@ -352,8 +323,8 @@ export default function App() {
 
             <section className="panel">
               <div className="panel-head">
-                <h2>Execution timeline</h2>
-                <span className="muted small">overlapping bars = agents working at the same time</span>
+                <h2>Timeline</h2>
+                <span className="muted small">Bars that overlap ran at the same time</span>
               </div>
               <Timeline state={state} now={now} />
             </section>
@@ -367,12 +338,9 @@ export default function App() {
 
       <footer className="foot">
         <span>
-          Multi-Agent Orchestration · built by{' '}
-          <a href="https://github.com/ashfarfaizi" target="_blank" rel="noreferrer">
-            Ashfar Faizi
-          </a>
+          Built by <a href="https://github.com/ashfarfaizi" target="_blank" rel="noreferrer">Ashfar Faizi</a>
         </span>
-        <span className="muted">React · Vercel Functions · Gemini / Claude · streaming NDJSON event bus</span>
+        <span className="muted">React and Vercel Functions, with Google Gemini or Claude</span>
       </footer>
 
       {selected && <Inspector id={selected} state={state} onClose={() => setSelected(null)} />}

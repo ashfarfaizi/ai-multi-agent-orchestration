@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import Markdown from './Markdown.jsx';
-import { SYSTEM_AGENTS, colorFor, fmtMs, fmtNum } from '../lib/theme.js';
+import { SYSTEM_AGENTS, colorFor, fmtMs, fmtNum, initials } from '../lib/theme.js';
 
 export default function Inspector({ id, state, onClose }) {
   useEffect(() => {
@@ -27,15 +27,15 @@ export default function Inspector({ id, state, onClose }) {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>ID</th><th>Agent</th><th>Deliverable</th><th>Depends on</th></tr>
+              <tr><th>ID</th><th>Agent</th><th>Task</th><th>Waits for</th></tr>
             </thead>
             <tbody>
               {plan.tasks.map((x) => (
                 <tr key={x.id}>
-                  <td className="mono">{x.id}</td>
-                  <td>{x.icon} {x.agent_name}</td>
+                  <td>{x.id}</td>
+                  <td>{x.agent_name}</td>
                   <td>{x.title}</td>
-                  <td className="mono">{x.depends_on.join(', ') || '—'}</td>
+                  <td>{x.depends_on.join(', ') || 'none'}</td>
                 </tr>
               ))}
             </tbody>
@@ -52,8 +52,8 @@ export default function Inspector({ id, state, onClose }) {
           return (
             <div key={r.taskId} className="insp-review">
               <div className="row between">
-                <b>{x?.icon} {x?.agent_name}</b>
-                <span className={`score ${r.score >= 7 ? 'good' : 'bad'}`}>{r.score}/10 · {r.verdict}</span>
+                <b>{x?.agent_name}</b>
+                <span className={`score ${r.score >= 7 ? 'good' : 'bad'}`}>{r.score}/10, {r.verdict === 'revise' ? 'sent back' : 'approved'}</span>
               </div>
               <p>{r.feedback}</p>
             </div>
@@ -68,18 +68,18 @@ export default function Inspector({ id, state, onClose }) {
     const elapsed = t.segments.reduce((s, x) => s + ((x.end ?? Date.now()) - x.start), 0);
     body = (
       <>
-        <div className="insp-stats mono">
-          <span>status: {t.status}</span>
-          <span>attempts: {Math.max(1, t.attempt)}</span>
-          <span>time: {fmtMs(elapsed)}</span>
-          {t.usage && <span>tokens: {fmtNum(t.usage.input)} in / {fmtNum(t.usage.output)} out</span>}
-        </div>
+        <dl className="insp-stats">
+          <div><dt>Status</dt><dd>{t.status}</dd></div>
+          <div><dt>Drafts</dt><dd>{Math.max(1, t.attempt)}</dd></div>
+          <div><dt>Time</dt><dd>{fmtMs(elapsed)}</dd></div>
+          {t.usage && <div><dt>Tokens</dt><dd>{fmtNum(t.usage.input)} in, {fmtNum(t.usage.output)} out</dd></div>}
+        </dl>
         <h4>Role</h4>
         <p>{meta.agent_role}</p>
-        <h4>Assignment from the orchestrator</h4>
+        <h4>Instructions from the orchestrator</h4>
         <p>{meta.instructions}</p>
-        <h4>Context received</h4>
-        <p>{deps.length ? deps.map((d) => `${d.icon} ${d.agent_name} (${d.title})`).join(' · ') : 'None: this agent started immediately, in parallel with the others.'}</p>
+        <h4>Work it received from teammates</h4>
+        <p>{deps.length ? deps.map((d) => `${d.agent_name} (${d.title})`).join(', ') : 'Nothing. It started right away, alongside the other independent tasks.'}</p>
         {t.review && (
           <>
             <h4>Review</h4>
@@ -88,11 +88,11 @@ export default function Inspector({ id, state, onClose }) {
             </p>
           </>
         )}
-        <h4>Deliverable{t.attempt > 1 ? ' (revised)' : ''}</h4>
+        <h4>Result{t.attempt > 1 ? ' (rewritten after review)' : ''}</h4>
         <Markdown text={t.text || '_Waiting to start…_'} />
         {t.previous && t.attempt > 1 && (
           <details className="prev">
-            <summary>Show first draft (before review)</summary>
+            <summary>Show the first draft</summary>
             <Markdown text={t.previous} />
           </details>
         )}
@@ -105,7 +105,7 @@ export default function Inspector({ id, state, onClose }) {
     <div className="drawer-backdrop" onClick={onClose}>
       <aside className="drawer" style={{ '--c': color }} onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Agent inspector">
         <header className="drawer-head">
-          <span className="acard-icon">{sys ? sys.icon : meta?.icon}</span>
+          <span className="badge-av">{initials(sys ? sys.name : meta?.agent_name)}</span>
           <div>
             <div className="drawer-title">{sys ? sys.name : meta?.agent_name}</div>
             <div className="muted">{sys ? sys.role : meta?.title}</div>

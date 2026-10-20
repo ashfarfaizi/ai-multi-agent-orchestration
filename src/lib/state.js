@@ -51,12 +51,12 @@ export function reducer(state, a) {
       return {
         ...state,
         phase: a.phase,
-        log: a.phase === 'done' ? state.log : log(state, { at, kind: 'phase', who: 'orchestrator', msg: `Phase → ${a.phase}` }),
+        log: a.phase === 'done' ? state.log : log(state, { at, kind: 'phase', who: 'orchestrator', msg: `Now ${a.phase}` }),
       };
 
     case 'agent_start': {
       const ag = state.agents[a.agent];
-      const labels = { orchestrator: 'Decomposing goal into a task graph…', reviewer: 'Reviewing all deliverables…', synthesizer: 'Merging deliverables into the final answer…' };
+      const labels = { orchestrator: 'Splitting the goal into tasks', reviewer: 'Reviewing every result', synthesizer: 'Writing the final document' };
       return {
         ...state,
         agents: { ...state.agents, [a.agent]: { ...ag, status: 'running', segments: [...ag.segments, { start: at, end: null, attempt: 1 }] } },
@@ -70,7 +70,7 @@ export function reducer(state, a) {
         ...state,
         agents: { ...state.agents, [a.agent]: { ...ag, status: 'done', segments: closeSegments(ag.segments, at) } },
         report: a.agent === 'synthesizer' && a.output ? a.output : state.report,
-        log: a.agent === 'synthesizer' ? log(state, { at, kind: 'ok', who: 'synthesizer', msg: 'Final deliverable ready' }) : state.log,
+        log: a.agent === 'synthesizer' ? log(state, { at, kind: 'ok', who: 'synthesizer', msg: 'Final document ready' }) : state.log,
       };
     }
 
@@ -88,7 +88,7 @@ export function reducer(state, a) {
           at,
           kind: 'ok',
           who: 'orchestrator',
-          msg: `Planned ${a.plan.tasks.length} tasks for ${a.plan.tasks.length} specialist agents · ${parallel} can start in parallel`,
+          msg: `Planned ${a.plan.tasks.length} tasks, ${parallel} can start right away`,
         }),
       };
     }
@@ -115,7 +115,7 @@ export function reducer(state, a) {
           at,
           kind: a.attempt > 1 ? 'warn' : 'info',
           who: meta.agent_name,
-          msg: a.attempt > 1 ? `Revising "${meta.title}" with reviewer feedback` : `Started "${meta.title}"${deps.length ? ` ← context from ${deps.join(', ')}` : ''}`,
+          msg: a.attempt > 1 ? `Rewriting "${meta.title}" using the reviewer's notes` : `Started "${meta.title}"${deps.length ? `, using work from ${deps.join(' and ')}` : ''}`,
         }),
       };
     }
@@ -144,7 +144,7 @@ export function reducer(state, a) {
           at,
           kind: 'ok',
           who: meta.agent_name,
-          msg: `Delivered "${meta.title}"${a.attempt > 1 ? ' (v2)' : ''} · ${a.usage?.output ?? '?'} tokens · ${(a.ms / 1000).toFixed(1)}s`,
+          msg: `Finished "${meta.title}"${a.attempt > 1 ? ' (rewrite)' : ''} in ${(a.ms / 1000).toFixed(1)}s, ${a.usage?.output ?? '?'} tokens`,
         }),
       };
     }
@@ -162,7 +162,7 @@ export function reducer(state, a) {
           at,
           kind: r.verdict === 'revise' ? 'warn' : 'ok',
           who: 'reviewer',
-          msg: `${name}: ${r.score}/10 · ${r.verdict === 'revise' ? 'sent back for revision' : 'approved'}`,
+          msg: `${name}: ${r.score}/10, ${r.verdict === 'revise' ? 'sent back' : 'approved'}`,
         });
       }
       return { ...state, tasks, review: { overall: a.overall, reviews: a.reviews }, log: logs };

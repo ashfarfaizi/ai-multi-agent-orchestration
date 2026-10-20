@@ -1,9 +1,9 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { SYSTEM_AGENTS, colorFor, fmtMs } from '../lib/theme.js';
+import { SYSTEM_AGENTS, colorFor, fmtMs, initials } from '../lib/theme.js';
 
-const NODE_W = 184;
-const NODE_H = 66;
-const ROW = 118;
+const NODE_W = 188;
+const NODE_H = 62;
+const ROW = 112;
 const PAD_Y = 22;
 
 function computeLayout(plan, width) {
@@ -91,12 +91,12 @@ function Node({ id, state, pos, now, selected, onSelect }) {
   if (id === '…') {
     return (
       <div className="gnode ghost" style={{ left: pos.x, top: pos.y, width: NODE_W, height: NODE_H }}>
-        <span className="muted">{state.status === 'idle' ? 'Specialist agents appear here' : 'Designing the team…'}</span>
+        <span className="muted">{state.status === 'idle' ? 'Specialists appear here' : 'Planning the team…'}</span>
       </div>
     );
   }
 
-  const label = { queued: 'queued', running: 'working', revising: 'revising v2', done: 'done', flagged: 'needs revision', error: 'error' }[status];
+  const label = { queued: 'Waiting', running: 'Working', revising: 'Rewriting', done: 'Done', flagged: 'Needs changes', error: 'Failed' }[status];
   return (
     <button
       type="button"
@@ -105,15 +105,14 @@ function Node({ id, state, pos, now, selected, onSelect }) {
       onClick={() => onSelect(id)}
       title={meta ? `${meta.agent_name}: ${meta.title}` : sys.role}
     >
-      <span className="gnode-ring" />
-      <span className="gnode-icon">{sys ? sys.icon : meta?.icon}</span>
+      <span className="badge-av">{initials(sys ? sys.name : meta?.agent_name)}</span>
       <span className="gnode-body">
         <span className="gnode-name">{sys ? sys.name : meta?.agent_name}</span>
         <span className="gnode-title">{sys ? sys.role : meta?.title}</span>
         <span className="gnode-meta">
           <span className={`dot d-${status}`} />
           {label}
-          {elapsed != null && <span className="mono"> · {fmtMs(elapsed)}</span>}
+          {elapsed != null && <span className="num">{fmtMs(elapsed)}</span>}
           {t?.review && <span className={`score ${t.review.score >= 7 ? 'good' : 'bad'}`}>{t.review.score}/10</span>}
         </span>
       </span>
@@ -145,7 +144,7 @@ export default function Graph({ state, now, selected, onSelect }) {
               <path d="M0,0 L10,5 L0,10 z" className="arrowhead" />
             </marker>
             <marker id="arrow-warn" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#f59e0b" />
+              <path d="M0,0 L10,5 L0,10 z" fill="#b26b00" />
             </marker>
           </defs>
           {layout.edges.map((e) => {

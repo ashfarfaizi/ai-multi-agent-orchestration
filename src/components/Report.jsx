@@ -23,12 +23,12 @@ export default function Report({ text, streaming, task }) {
     <section className="panel report" id="report">
       <div className="panel-head">
         <h2>
-          <span className="spark">✨</span> Final deliverable
-          {streaming && <span className="pill p-running"><span className="dot d-running" />Synthesizing</span>}
+          Final document
+          {streaming && <span className="state st-running"><span className="dot d-running" />Writing</span>}
         </h2>
         {!streaming && (
           <div className="row gap">
-            <button type="button" className="btn ghost sm" onClick={copy}>{copied ? 'Copied ✓' : 'Copy'}</button>
+            <button type="button" className="btn ghost sm" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
             <button type="button" className="btn ghost sm" onClick={download}>Download .md</button>
           </div>
         )}
