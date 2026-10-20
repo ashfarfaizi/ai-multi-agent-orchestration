@@ -4,18 +4,20 @@ import AgentFeed from './components/AgentFeed.jsx';
 import Timeline from './components/Timeline.jsx';
 import Report from './components/Report.jsx';
 import Inspector from './components/Inspector.jsx';
-import Settings from './components/Settings.jsx';
+import Settings, { FALLBACK_PROVIDERS } from './components/Settings.jsx';
 import { initialState, reducer, peakParallelism } from './lib/state.js';
 import { runDemo, runLive } from './lib/engines.js';
 import { SCENARIOS } from './lib/scenarios.js';
 import { fmtMs, fmtNum } from './lib/theme.js';
 
 const REPO_URL = 'https://github.com/ashfarfaizi/orchestration-app';
-const STORE_KEY = 'mao.settings.v1';
+const STORE_KEY = 'mao.settings.v2';
+const DEFAULT_SETTINGS = { mode: null, provider: 'gemini', keys: { gemini: '', anthropic: '' }, models: {} };
 
 function loadSettings() {
   try {
-    return JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    const s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    return s ? { ...DEFAULT_SETTINGS, ...s, keys: { ...DEFAULT_SETTINGS.keys, ...s.keys } } : null;
   } catch {
     return null;
   }
@@ -88,7 +90,7 @@ function Logo() {
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [health, setHealth] = useState(null);
-  const [settings, setSettings] = useState(() => loadSettings() || { mode: null, apiKey: '', model: 'claude-sonnet-5-5' });
+  const [settings, setSettings] = useState(() => loadSettings() || DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
   const [selected, setSelected] = useState(null);
   const [task, setTask] = useState(SCENARIOS[0].prompt);
@@ -105,8 +107,8 @@ export default function App() {
       .catch(() => null)
       .then((h) => {
         if (!alive) return;
-        setHealth(h || { serverKey: false, models: null });
-        setSettings((s) => (s.mode ? s : { ...s, mode: h?.serverKey ? 'live' : 'demo' }));
+        setHealth(h || { serverKey: false, providers: null });
+        setSettings((s) => (s.mode ? s : { ...s, mode: h?.serverKey ? 'live' : 'demo', provider: h?.defaultProvider || s.provider }));
       });
     return () => {
       alive = false;
@@ -145,7 +147,11 @@ export default function App() {
   );
 
   const mode = settings.mode || 'demo';
-  const liveReady = Boolean(health?.serverKey || settings.apiKey);
+  const providers = health?.providers || FALLBACK_PROVIDERS;
+  const prov = providers.find((p) => p.id === settings.provider) || providers[0];
+  const model = prov.models.includes(settings.models?.[prov.id]) ? settings.models[prov.id] : prov.defaultModel;
+  const userKey = settings.keys?.[prov.id] || '';
+  const liveReady = Boolean(prov.serverKey || userKey);
 
   const start = async () => {
     const text = task.trim();
@@ -174,7 +180,7 @@ export default function App() {
     requestAnimationFrame(() => dashRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     try {
       if (scenario) await runDemo({ scenarioId: scenario.id, onEvent, signal: ac.signal });
-      else await runLive({ task: text, model: settings.model, apiKey: health?.serverKey ? '' : settings.apiKey, onEvent, signal: ac.signal });
+      else await runLive({ task: text, provider: prov.id, model, apiKey: prov.serverKey ? '' : userKey, onEvent, signal: ac.signal });
     } catch (err) {
       flush();
       if (err?.name === 'AbortError') dispatch({ type: 'stopped', at: Date.now() });
@@ -207,7 +213,7 @@ export default function App() {
         <div className="row gap">
           <button type="button" className={`mode-pill ${mode}`} onClick={() => setShowSettings(true)} title="Change mode & model">
             <span className={`dot ${mode === 'live' ? 'd-done' : 'd-flagged'}`} />
-            {mode === 'live' ? `Live · ${settings.model}` : 'Demo replay'}
+            {mode === 'live' ? `Live · ${model}` : 'Demo replay'}
           </button>
           <a className="icon-btn" href={REPO_URL} target="_blank" rel="noreferrer" aria-label="Source on GitHub" title="Source on GitHub">
             <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -277,8 +283,8 @@ export default function App() {
             </div>
             {notice === 'demo-custom' && (
               <div className="notice">
-                <b>You're in demo mode,</b> which replays three recorded runs (pick one above). To send real Claude agents after{' '}
-                <i>any</i> goal, switch to Live mode and add an Anthropic API key.
+                <b>You're in demo mode,</b> which replays three recorded runs (pick one above). To send real AI agents after{' '}
+                <i>any</i> goal, go live with a <b>free Google Gemini API key</b>.
                 <button type="button" className="btn sm primary" onClick={() => setShowSettings(true)}>
                   Go live
                 </button>
@@ -366,14 +372,14 @@ export default function App() {
             Ashfar Faizi
           </a>
         </span>
-        <span className="muted">React · Vercel Functions · Claude · streaming NDJSON event bus</span>
+        <span className="muted">React · Vercel Functions · Gemini / Claude · streaming NDJSON event bus</span>
       </footer>
 
       {selected && <Inspector id={selected} state={state} onClose={() => setSelected(null)} />}
       {showSettings && (
         <Settings
           settings={{ ...settings, mode }}
-          health={health}
+          providers={providers}
           onClose={() => setShowSettings(false)}
           onSave={(s) => {
             setSettings(s);

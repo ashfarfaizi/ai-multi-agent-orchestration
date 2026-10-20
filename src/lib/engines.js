@@ -1,13 +1,15 @@
 import { SCENARIOS } from './scenarios.js';
 
 /** Live mode: POST to the serverless orchestrator and read the NDJSON event stream. */
-export async function runLive({ task, model, apiKey, onEvent, signal }) {
+const KEY_HEADERS = { gemini: 'x-gemini-key', anthropic: 'x-anthropic-key' };
+
+export async function runLive({ task, provider, model, apiKey, onEvent, signal }) {
   const headers = { 'content-type': 'application/json' };
-  if (apiKey) headers['x-anthropic-key'] = apiKey;
+  if (apiKey) headers[KEY_HEADERS[provider] || 'x-gemini-key'] = apiKey;
   const res = await fetch('/api/orchestrate', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ task, model }),
+    body: JSON.stringify({ task, provider, model }),
     signal,
   });
   if (!res.ok) {

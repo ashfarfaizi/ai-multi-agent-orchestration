@@ -1,4 +1,5 @@
-import { runOrchestration, MODELS, DEFAULT_MODEL } from '../lib/orchestrator.js';
+import { runOrchestration } from '../lib/orchestrator.js';
+import { PROVIDERS, DEFAULT_PROVIDER, serverKey } from '../lib/providers/index.js';
 
 async function readJson(req) {
   if (req.body !== undefined && req.body !== null) {
@@ -32,11 +33,21 @@ export default async function handler(req, res) {
   if (task.length < 8) return sendJson(res, 400, { error: 'Describe the goal in a bit more detail.' });
   if (task.length > 4000) return sendJson(res, 400, { error: 'Goal is too long (max 4000 characters).' });
 
-  // Server key wins; otherwise accept a user-supplied key (bring-your-own-key).
-  const apiKey = process.env.ANTHROPIC_API_KEY || String(req.headers['x-anthropic-key'] || '').trim();
-  if (!apiKey) return sendJson(res, 401, { error: 'No Anthropic API key configured. Add one in Settings or set ANTHROPIC_API_KEY.' });
+  const provider = PROVIDERS[body.provider] || PROVIDERS[process.env.LLM_PROVIDER] || PROVIDERS[DEFAULT_PROVIDER];
 
-  const model = MODELS.includes(body.model) ? body.model : DEFAULT_MODEL;
+  // Server key wins; otherwise accept a user-supplied key (bring-your-own-key).
+  const apiKey = serverKey(provider) || String(req.headers[provider.keyHeader] || '').trim();
+  if (!apiKey) {
+    const hint = provider.id === 'gemini' ? 'Get a free key at aistudio.google.com/apikey and add it in Settings (or set GEMINI_API_KEY).' : 'Add an Anthropic key in Settings (or set ANTHROPIC_API_KEY).';
+    return sendJson(res, 401, { error: `No ${provider.label} API key configured. ${hint}` });
+  }
+
+  const envModel = process.env[`${provider.id.toUpperCase()}_MODEL`];
+  const model = provider.models.includes(body.model)
+    ? body.model
+    : provider.models.includes(envModel)
+      ? envModel
+      : provider.defaultModel;
 
   res.writeHead(200, {
     'content-type': 'application/x-ndjson; charset=utf-8',
@@ -58,7 +69,7 @@ export default async function handler(req, res) {
   const heartbeat = setInterval(() => emit({ type: 'ping' }), 10000);
 
   try {
-    await runOrchestration({ task, apiKey, model, emit, signal: controller.signal });
+    await runOrchestration({ task, provider, apiKey, model, emit, signal: controller.signal });
   } catch (err) {
     if (err?.name !== 'AbortError') {
       console.error('[orchestrate]', err);

@@ -171,6 +171,9 @@ export function reducer(state, a) {
     case 'usage':
       return { ...state, usage: a.usage };
 
+    case 'retry':
+      return { ...state, log: log(state, { at, kind: 'warn', who: 'system', msg: a.message }) };
+
     case 'run_done':
       return { ...state, status: 'done', endedAt: at, phase: 'done', usage: a.usage || state.usage };
 
