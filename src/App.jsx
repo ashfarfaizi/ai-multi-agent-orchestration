@@ -10,7 +10,7 @@ import { runDemo, runLive } from './lib/engines.js';
 import { SCENARIOS } from './lib/scenarios.js';
 import { fmtMs, fmtNum } from './lib/theme.js';
 
-const REPO_URL = 'https://github.com/ashfarfaizi/orchestration-app';
+const REPO_URL = 'https://github.com/ashfarfaizi/ai-multi-agent-orchestration';
 const STORE_KEY = 'mao.settings.v2';
 const DEFAULT_SETTINGS = { mode: null, provider: 'gemini', keys: { gemini: '', anthropic: '' }, models: {} };
 

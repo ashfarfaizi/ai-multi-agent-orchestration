@@ -1,5 +1,5 @@
 {
-  "name": "multi-agent-orchestration",
+  "name": "ai-multi-agent-orchestration",
   "version": "1.0.0",
   "private": true,
   "description": "A live multi-agent orchestration system: an orchestrator plans a task graph, specialist AI agents execute it in parallel, a reviewer enforces quality, and a synthesizer delivers the final result.",
